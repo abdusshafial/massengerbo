@@ -89,6 +89,12 @@
     .premium-title { margin-top: 6px; font-size: 12px; font-weight: 680; }
     .premium-text { max-width: 250px; margin-top: 4px; color: #b9acc8; font-size: 9px; line-height: 1.5; }
     .premium-button { position: relative; z-index: 1; flex: 0 0 auto; padding: 8px 10px; border: 1px solid #d5baff42; border-radius: 10px; color: #f2eaff; background: #ffffff09; font-size: 9px; cursor: pointer; }
+    .local-chat { display: grid; gap: 8px; margin-top: 14px; }
+    .local-chat[hidden] { display: none; }
+    .local-row { display: flex; }
+    .local-row.user { justify-content: flex-end; }
+    .local-bubble { max-width: 86%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px 14px 14px 5px; color: #d9d0e3; background: var(--surface-soft); font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .local-row.user .local-bubble { border-color: #b58cff3a; border-radius: 14px 14px 5px 14px; color: #f6efff; background: linear-gradient(135deg, #543776, #40285f); }
     .composer { margin-top: auto; padding-top: 14px; }
     .composer-label { margin: 0 0 8px 2px; color: #8e829c; font-size: 9px; }
     .input-wrap { display: flex; align-items: flex-end; gap: 9px; padding: 7px; border: 1px solid #cbaaff27; border-radius: 17px; background: #1b1428; box-shadow: 0 11px 35px #00000028; transition: border-color .15s, box-shadow .15s; }
@@ -138,6 +144,7 @@
         <div class="premium-copy"><div class="premium-label">&#10022; &nbsp; E Premium</div><div class="premium-title">A little more room to think.</div><div class="premium-text">A polished space for your next question, idea, or plan.</div></div>
         <button class="premium-button" id="premium-button" type="button">Explore</button>
       </section>
+      <section class="local-chat" id="local-chat" aria-live="polite" hidden></section>
     </main>
     <section class="composer" aria-label="Message composer">
       <div class="composer-label">What is on your mind?</div>
@@ -145,7 +152,7 @@
         <textarea id="message-input" rows="1" maxlength="4000" placeholder="Ask me anything..." aria-label="Your message"></textarea>
         <button class="send" type="submit" aria-label="Send message">&#8593;</button>
       </form>
-      <div class="hint">YOUR CHAT CONTINUES IN TELEGRAM</div>
+      <div class="hint" id="mode-hint">YOUR CHAT CONTINUES IN TELEGRAM</div>
     </section>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -158,6 +165,9 @@
     const form = document.getElementById('message-form');
     const toast = document.getElementById('toast');
     const modal = document.getElementById('premium-modal');
+    const localChat = document.getElementById('local-chat');
+    const modeHint = document.getElementById('mode-hint');
+    const sendButton = form.querySelector('.send');
     let toastTimer;
 
     if (tg) {
@@ -167,6 +177,8 @@
       if (tg.setBackgroundColor) tg.setBackgroundColor('#100b1c');
       const firstName = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name;
       if (firstName) document.getElementById('greeting').innerHTML = 'Welcome back,<br><span>' + escapeHtml(firstName) + '.</span>';
+    } else {
+      modeHint.textContent = 'LOCAL PREVIEW - REPLIES USE THE DEMO ENDPOINT';
     }
 
     function escapeHtml(value) {
@@ -178,15 +190,45 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2300);
     }
-    function sendMessage(text) {
+    function addLocalMessage(text, kind) {
+      localChat.hidden = false;
+      const row = document.createElement('div');
+      row.className = 'local-row ' + kind;
+      const bubble = document.createElement('div');
+      bubble.className = 'local-bubble';
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      localChat.appendChild(row);
+      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    async function sendMessage(text) {
       const value = (text || '').trim();
       if (!value) { input.focus(); return; }
-      if (!tg || typeof tg.sendData !== 'function') {
-        showToast('Open this Mini App from the E Premium bot in Telegram to send a message.');
+      if (tg && typeof tg.sendData === 'function') {
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        tg.sendData(JSON.stringify({ type: 'message', text: value }));
         return;
       }
-      if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      tg.sendData(JSON.stringify({ type: 'message', text: value }));
+      addLocalMessage(value, 'user');
+      input.value = '';
+      sendButton.disabled = true;
+      sendButton.textContent = '...';
+      try {
+        const response = await fetch('/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: value }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.reply || 'The demo endpoint did not accept the message.');
+        addLocalMessage(data.reply || 'No response received.', 'bot');
+      } catch (error) {
+        addLocalMessage('Could not reach the local preview server. Please try again.', 'bot');
+      } finally {
+        sendButton.disabled = false;
+        sendButton.innerHTML = '&#8593;';
+        input.focus();
+      }
     }
     document.querySelectorAll('[data-prompt]').forEach(button => {
       button.addEventListener('click', () => {

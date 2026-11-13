@@ -20,7 +20,7 @@ The bot supports `/start`, `/help`, `/menu`, and `/new`. OpenAI API usage may in
 
 `webapp/index.html` is the dark-purple Mini App and `webapp/logo.svg` is its matching vector mark. Host the `webapp` folder on a public HTTPS site, then set `WEBAPP_URL` in `.env` to the hosted page URL. After that, `/start` shows an **Open E Premium** keyboard button. Messages sent from the Mini App are answered in the Telegram chat. Telegram requires a Mini App URL to use HTTPS, and keyboard-launched Mini Apps can send data back to the bot with `sendData`.
 
-For a local visual preview, run `python app.py` and open `http://127.0.0.1:5000/miniapp`. A local HTTP URL is only for preview; Telegram needs the hosted HTTPS URL in `WEBAPP_URL`.
+For a local preview, run `python app.py` and open `http://127.0.0.1:5000/miniapp`. The preview posts to the local `/message` demo endpoint, which echoes the text. Inside Telegram, the Mini App sends the text to `bot.py`, which generates the AI reply. A local HTTP URL is only for preview; Telegram needs the hosted HTTPS URL in `WEBAPP_URL`.
 
 ## Local dashboard and Messenger webhook
 
