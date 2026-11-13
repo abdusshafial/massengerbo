@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">E Premium mark</title>
+  <defs>
+    <linearGradient id="bg" x1="52" y1="28" x2="458" y2="492" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#392250"/>
+      <stop offset="1" stop-color="#171021"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="122" y1="104" x2="376" y2="403" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1D7FF"/>
+      <stop offset=".52" stop-color="#C89AFF"/>
+      <stop offset="1" stop-color="#9861DD"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(0 270 -270 0 256 170)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B67CFF" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#B67CFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="146" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="146" fill="url(#glow)"/>
+  <rect x="2" y="2" width="508" height="508" rx="144" stroke="#E3C8FF" stroke-opacity=".17" stroke-width="4"/>
+  <path d="M158 153c0-13 10-23 23-23h150c13 0 23 10 23 23s-10 23-23 23H204v56h111c13 0 23 10 23 23s-10 23-23 23H204v57h127c13 0 23 10 23 23s-10 23-23 23H181c-13 0-23-10-23-23V153Z" fill="url(#mark)"/>
+  <path d="m376 94 8 22 22 8-22 8-8 22-8-22-22-8 22-8 8-22Z" fill="#F5D8FF"/>
+  <circle cx="405" cy="171" r="7" fill="#F5D8FF" fill-opacity=".78"/>
+</svg>

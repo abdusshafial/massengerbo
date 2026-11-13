@@ -42,15 +42,28 @@ def telegram(method: str, payload: dict) -> dict:
 
 
 def keyboard() -> dict:
-    if WEBAPP_URL:
-        rows = [[{"text": "Open E Premium", "web_app": {"url": WEBAPP_URL}}]]
-    else:
-        rows = [[{"text": "Chat with AI", "callback_data": "chat"}]]
-    rows.append([
-        {"text": "Premium", "callback_data": "premium"},
-        {"text": "How it works", "callback_data": "help"},
-    ])
-    return {"inline_keyboard": rows}
+    return {
+        "inline_keyboard": [
+            [{"text": "Chat with AI", "callback_data": "chat"}],
+            [
+                {"text": "Premium", "callback_data": "premium"},
+                {"text": "How it works", "callback_data": "help"},
+            ],
+        ]
+    }
+
+
+def launch_keyboard() -> dict:
+    if not WEBAPP_URL:
+        return keyboard()
+    return {
+        "keyboard": [
+            [{"text": "Open E Premium", "web_app": {"url": WEBAPP_URL}}],
+            [{"text": "/new"}, {"text": "/help"}],
+        ],
+        "resize_keyboard": True,
+        "is_persistent": True,
+    }
 
 
 def send(chat_id: int, text: str, *, markup: dict | None = None) -> None:
@@ -71,7 +84,7 @@ def welcome(chat_id: int, first_name: str) -> None:
         f"Hi {name}! Send me a message and I will give you a thoughtful, useful reply. "
         "Ask a question, get ideas, or let me help write something.\n\n"
         "<b>Choose a shortcut below, or just start chatting.</b>",
-        markup=keyboard(),
+        markup=launch_keyboard(),
     )
 
 
@@ -143,10 +156,10 @@ def handle_message(message: dict) -> None:
     if command == "/start":
         welcome(chat_id, message.get("from", {}).get("first_name", "there"))
     elif command in ("/help", "/menu"):
-        send(chat_id, "<b>How can I help?</b>\n\nSend a question or message and I will reply. Use /new to start fresh.", markup=keyboard())
+        send(chat_id, "<b>How can I help?</b>\n\nSend a question or message and I will reply. Use /new to start fresh.", markup=launch_keyboard())
     elif command == "/new":
         history.pop(chat_id, None)
-        send(chat_id, "<b>Fresh conversation &#10022;</b>\nWhat would you like to talk about?", markup=keyboard())
+        send(chat_id, "<b>Fresh conversation &#10022;</b>\nWhat would you like to talk about?", markup=launch_keyboard())
     elif text.startswith("/"):
         send(chat_id, "I do not recognize that command. Try /help or send me a message.")
     else:

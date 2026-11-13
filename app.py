@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
 
 load_dotenv()
 
@@ -60,6 +60,21 @@ def handle_incoming_message(event: Dict[str, Any]) -> str:
 @app.get("/")
 def home():
     return render_template("index.html")
+
+
+@app.get("/miniapp")
+def miniapp():
+    return redirect("/miniapp/")
+
+
+@app.get("/miniapp/")
+def miniapp_index():
+    return send_from_directory(os.path.join(app.root_path, "webapp"), "index.html")
+
+
+@app.get("/miniapp/<path:filename>")
+def miniapp_asset(filename: str):
+    return send_from_directory(os.path.join(app.root_path, "webapp"), filename)
 
 
 @app.get("/health")
