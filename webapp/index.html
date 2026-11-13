@@ -161,6 +161,7 @@
   </div>
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
+    const inTelegram = Boolean(tg && typeof tg.initData === 'string' && tg.initData.length > 0);
     const input = document.getElementById('message-input');
     const form = document.getElementById('message-form');
     const toast = document.getElementById('toast');
@@ -170,7 +171,7 @@
     const sendButton = form.querySelector('.send');
     let toastTimer;
 
-    if (tg) {
+    if (inTelegram) {
       tg.ready();
       tg.expand();
       if (tg.setHeaderColor) tg.setHeaderColor('#100b1c');
@@ -204,7 +205,7 @@
     async function sendMessage(text) {
       const value = (text || '').trim();
       if (!value) { input.focus(); return; }
-      if (tg && typeof tg.sendData === 'function') {
+      if (inTelegram && typeof tg.sendData === 'function') {
         if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         tg.sendData(JSON.stringify({ type: 'message', text: value }));
         return;
