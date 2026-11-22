@@ -1,10 +1,22 @@
 import json
 import os
+import sqlite3
+import urllib.error
 from typing import Any, Dict, List
 
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, send_from_directory
+
+from assistant_service import (
+    MAX_INPUT,
+    OPENAI_API_KEY,
+    ConversationChanged,
+    ai_reply,
+    read_conversation,
+    reset_conversation,
+)
+from miniapp_auth import telegram_user_id
 
 load_dotenv()
 
@@ -12,6 +24,7 @@ app = Flask(__name__)
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "demo_verify_token")
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN", "")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 PORT = int(os.getenv("PORT", "5000"))
 
 
@@ -75,6 +88,39 @@ def miniapp_index():
 @app.get("/miniapp/<path:filename>")
 def miniapp_asset(filename: str):
     return send_from_directory(os.path.join(app.root_path, "webapp"), filename)
+
+
+@app.route("/miniapp/chat", methods=["GET", "POST", "DELETE"])
+def miniapp_chat():
+    if not TELEGRAM_TOKEN or not OPENAI_API_KEY:
+        return jsonify(error="AI চ্যাটের সেটআপ সম্পূর্ণ হয়নি।"), 503
+
+    scheme, _, init_data = request.headers.get("Authorization", "").partition(" ")
+    user_id = telegram_user_id(init_data, TELEGRAM_TOKEN) if scheme.lower() == "tma" else None
+    if user_id is None:
+        return jsonify(error="Telegram থেকে Mini App আবার খুলুন।"), 401
+
+    try:
+        if request.method in ("GET", "HEAD"):
+            _, messages = read_conversation(user_id)
+            response = jsonify(messages=messages)
+            response.headers["Cache-Control"] = "no-store"
+            return response
+        if request.method == "DELETE":
+            reset_conversation(user_id)
+            return "", 204
+
+        request.max_content_length = 32_768
+        data = request.get_json(silent=True)
+        text = data.get("text") if isinstance(data, dict) else None
+        if not isinstance(text, str) or not 0 < len(text.strip()) <= MAX_INPUT:
+            return jsonify(error=f"১ থেকে {MAX_INPUT} অক্ষরের একটি মেসেজ লিখুন।"), 400
+        return jsonify(reply=ai_reply(user_id, text.strip()))
+    except ConversationChanged:
+        return jsonify(error="চ্যাটে আরেকটি পরিবর্তন হয়েছে। আবার পাঠান।"), 409
+    except (urllib.error.URLError, TimeoutError, RuntimeError, ValueError, sqlite3.Error) as exc:
+        app.logger.warning("Mini App chat failed: %s", type(exc).__name__)
+        return jsonify(error="এখন উত্তর পাওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।"), 502
 
 
 @app.get("/health")

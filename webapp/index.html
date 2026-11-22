@@ -1,23 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#100b1c">
   <title>E Premium</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js?65"></script>
   <style>
     :root {
       color-scheme: dark;
       --bg: #100b1c;
-      --surface: #1a1327;
       --surface-soft: #211832;
       --line: rgba(220, 197, 255, .105);
       --text: #fbf8ff;
       --muted: #a89bb9;
-      --purple: #b188ff;
-      --pink: #efabe9;
-      --mint: #8ae2c3;
     }
     * { box-sizing: border-box; }
     body {
@@ -44,17 +40,13 @@
     .logo { width: 39px; height: 39px; border-radius: 14px; box-shadow: 0 7px 22px #9860dd37; }
     .brand-name { font-size: 12px; font-weight: 780; letter-spacing: .13em; }
     .brand-note { margin-top: 2px; color: var(--muted); font-size: 9px; }
-    .ready { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: #d4c9df; background: #ffffff05; font-size: 9px; letter-spacing: .08em; }
-    .ready:before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 6px 1px 0; border-radius: 50%; background: var(--mint); box-shadow: 0 0 8px #8ae2c3aa; }
     main { flex: 1; padding-bottom: 14px; }
     .hero { padding: 40px 0 22px; }
-    .eyebrow { color: #c6a7f9; font-size: 9px; font-weight: 720; letter-spacing: .2em; text-transform: uppercase; }
-    h1 { margin: 11px 0 10px; font-size: clamp(32px, 9vw, 42px); line-height: 1.03; letter-spacing: -.055em; font-weight: 735; }
+    h1 { margin: 11px 0 10px; font-size: clamp(32px, 9vw, 42px); line-height: 1.15; letter-spacing: -.025em; font-weight: 735; }
     h1 span { color: transparent; background: linear-gradient(95deg, #cbaaff, #f0b2ec 78%); background-clip: text; }
     .intro { max-width: 355px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
     .section-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 10px; }
     .section-title { color: #ded5e8; font-size: 10px; font-weight: 660; }
-    .section-hint { color: #82758f; font-size: 9px; }
     .prompts { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
     .prompt {
       min-height: 84px;
@@ -69,7 +61,7 @@
     }
     .prompt:active { transform: scale(.98); border-color: #bd94ff76; background: #a26be91b; }
     .prompt-icon { display: block; margin-bottom: 8px; color: #d6bdff; font-size: 16px; }
-    .prompt strong { display: block; font-size: 10px; font-weight: 640; }
+    .prompt strong { display: block; font-size: 13px; font-weight: 640; }
     .premium {
       position: relative;
       overflow: hidden;
@@ -87,23 +79,26 @@
     .premium-copy { position: relative; z-index: 1; }
     .premium-label { color: #d2b4ff; font-size: 8px; font-weight: 730; letter-spacing: .17em; text-transform: uppercase; }
     .premium-title { margin-top: 6px; font-size: 12px; font-weight: 680; }
-    .premium-text { max-width: 250px; margin-top: 4px; color: #b9acc8; font-size: 9px; line-height: 1.5; }
     .premium-button { position: relative; z-index: 1; flex: 0 0 auto; padding: 8px 10px; border: 1px solid #d5baff42; border-radius: 10px; color: #f2eaff; background: #ffffff09; font-size: 9px; cursor: pointer; }
     .local-chat { display: grid; gap: 8px; margin-top: 14px; }
     .local-chat[hidden] { display: none; }
     .local-row { display: flex; }
     .local-row.user { justify-content: flex-end; }
-    .local-bubble { max-width: 86%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px 14px 14px 5px; color: #d9d0e3; background: var(--surface-soft); font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .local-bubble { max-width: 86%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px 14px 14px 5px; color: #d9d0e3; background: var(--surface-soft); font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
     .local-row.user .local-bubble { border-color: #b58cff3a; border-radius: 14px 14px 5px 14px; color: #f6efff; background: linear-gradient(135deg, #543776, #40285f); }
     .composer { margin-top: auto; padding-top: 14px; }
-    .composer-label { margin: 0 0 8px 2px; color: #8e829c; font-size: 9px; }
+    .composer-label { display: block; margin: 0 0 8px 2px; color: #8e829c; font-size: 9px; }
     .input-wrap { display: flex; align-items: flex-end; gap: 9px; padding: 7px; border: 1px solid #cbaaff27; border-radius: 17px; background: #1b1428; box-shadow: 0 11px 35px #00000028; transition: border-color .15s, box-shadow .15s; }
     .input-wrap:focus-within { border-color: #b98eff77; box-shadow: 0 0 0 3px #a174dc17, 0 11px 35px #00000028; }
-    textarea { min-height: 37px; max-height: 105px; flex: 1; resize: none; border: 0; outline: 0; padding: 9px 7px; color: var(--text); background: transparent; font-size: 12px; line-height: 1.5; }
+    textarea { min-height: 37px; max-height: 105px; flex: 1; resize: none; border: 0; outline: 0; padding: 9px 7px; color: var(--text); background: transparent; font-size: 16px; line-height: 1.5; }
     textarea::placeholder { color: #83768f; }
-    .send { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border: 0; border-radius: 12px; color: white; background: linear-gradient(145deg, #c099ff, #8753d5); box-shadow: 0 5px 16px #9a61d745; font-size: 18px; cursor: pointer; }
+    .send { display: grid; width: 44px; height: 44px; flex: 0 0 44px; place-items: center; border: 0; border-radius: 12px; color: white; background: linear-gradient(145deg, #c099ff, #8753d5); box-shadow: 0 5px 16px #9a61d745; font-size: 18px; cursor: pointer; }
     .send:active { transform: scale(.96); }
-    .hint { padding: 9px 0 1px; color: #756a81; text-align: center; font-size: 8px; letter-spacing: .08em; }
+    .send:disabled, .chat-action:disabled { opacity: .6; cursor: wait; }
+    .chat-action { display: block; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: transparent; font: inherit; cursor: pointer; }
+    .chat-action[hidden] { display: none; }
+    .copy { margin-top: 8px; font-size: 10px; }
+    .hint { padding: 9px 0 1px; color: var(--muted); text-align: center; font-size: 11px; }
     .toast { position: fixed; z-index: 10; right: 18px; bottom: max(24px, env(safe-area-inset-bottom)); left: 18px; width: fit-content; max-width: calc(100vw - 36px); margin: auto; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: #2a2039; box-shadow: 0 10px 30px #0005; font-size: 11px; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .modal-backdrop { position: fixed; z-index: 20; inset: 0; display: none; place-items: end center; padding: 12px; background: #08050c99; backdrop-filter: blur(6px); }
@@ -123,45 +118,48 @@
     <header class="topbar">
       <div class="brand">
         <img class="logo" src="logo.svg" alt="E Premium logo">
-        <div><div class="brand-name">E PREMIUM</div><div class="brand-note">Your personal AI space</div></div>
+        <div><div class="brand-name">E PREMIUM</div><div class="brand-note">বাংলা AI সহকারী</div></div>
       </div>
-      <div class="ready">READY</div>
+      <button class="chat-action" id="reset-chat" type="button" hidden>নতুন চ্যাট</button>
     </header>
     <main>
       <section class="hero">
-        <div class="eyebrow">A calmer kind of clever</div>
-        <h1 id="greeting">Big ideas start<br>with <span>hello.</span></h1>
-        <p class="intro">A thoughtful companion for questions, plans, fresh ideas, and the little things you need to write.</p>
+        <h1 id="greeting">কী নিয়ে <span>কথা বলবেন?</span></h1>
+        <p class="intro">প্রশ্ন করুন, পোস্ট লিখুন বা কঠিন বিষয় সহজ করে বুঝে নিন।</p>
       </section>
-      <div class="section-head"><div class="section-title">Pick a place to begin</div><div class="section-hint">Or ask anything below</div></div>
-      <section class="prompts" aria-label="Suggested prompts">
-        <button class="prompt" data-prompt="Help me plan a calm, productive day"><span class="prompt-icon">&#9788;</span><strong>Plan my day</strong></button>
-        <button class="prompt" data-prompt="Give me three creative ideas for a project"><span class="prompt-icon">&#10038;</span><strong>Find a fresh idea</strong></button>
-        <button class="prompt" data-prompt="Explain this in simple words: "><span class="prompt-icon">&#9672;</span><strong>Make it simple</strong></button>
-        <button class="prompt" data-prompt="Help me write a kind, clear message about "><span class="prompt-icon">&#9998;</span><strong>Write together</strong></button>
+      <div class="section-head"><div class="section-title">শর্টকাট</div></div>
+      <section class="prompts" aria-label="শর্টকাট">
+        <button class="prompt" data-prompt="আজকের জন্য একটি কাজের পরিকল্পনা বানাও। আমার কাজগুলো হলো "><span class="prompt-icon">&#9788;</span><strong>দিনের পরিকল্পনা</strong></button>
+        <button class="prompt" data-prompt="বাংলায় অনুবাদ করো: "><span class="prompt-icon">&#10038;</span><strong>অনুবাদ করো</strong></button>
+        <button class="prompt" data-prompt="সহজ করে বোঝাও: "><span class="prompt-icon">&#9672;</span><strong>সহজ করে বোঝাও</strong></button>
+        <button class="prompt" data-prompt="এই বিষয়ে একটি পোস্ট লেখো: "><span class="prompt-icon">&#9998;</span><strong>পোস্ট লেখো</strong></button>
       </section>
-      <section class="premium" aria-label="Premium information">
-        <div class="premium-copy"><div class="premium-label">&#10022; &nbsp; E Premium</div><div class="premium-title">A little more room to think.</div><div class="premium-text">A polished space for your next question, idea, or plan.</div></div>
-        <button class="premium-button" id="premium-button" type="button">Explore</button>
+      <section class="premium" aria-label="Premium সাবস্ক্রিপশন">
+        <div class="premium-copy"><div class="premium-label">&#10022; &nbsp; E Premium</div><div class="premium-title">সাবস্ক্রিপশন আসছে</div></div>
+        <button class="premium-button" id="premium-button" type="button">দেখুন</button>
       </section>
       <section class="local-chat" id="local-chat" aria-live="polite" hidden></section>
     </main>
     <section class="composer" aria-label="Message composer">
-      <div class="composer-label">What is on your mind?</div>
+      <label class="composer-label" for="message-input">আপনার মেসেজ</label>
       <form class="input-wrap" id="message-form">
-        <textarea id="message-input" rows="1" maxlength="4000" placeholder="Ask me anything..." aria-label="Your message"></textarea>
-        <button class="send" type="submit" aria-label="Send message">&#8593;</button>
+        <textarea id="message-input" rows="1" maxlength="4000" placeholder="এখানে লিখুন…"></textarea>
+        <button class="send" type="submit" aria-label="পাঠান">&#8593;</button>
       </form>
-      <div class="hint" id="mode-hint">YOUR CHAT CONTINUES IN TELEGRAM</div>
+      <div class="hint" id="mode-hint"></div>
     </section>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="modal-backdrop" id="premium-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal"><div class="modal-mark">&#10022;</div><h2 id="modal-title">Premium is being prepared</h2><p>Subscription plans and payments are not connected yet. You can still use the AI chat from this app.</p><button class="modal-close" id="modal-close" type="button">Got it</button></div>
+    <div class="modal"><div class="modal-mark">&#10022;</div><h2 id="modal-title">Premium</h2><p>সাবস্ক্রিপশন চালু হলে এখানে প্ল্যানের তথ্য দেখা যাবে।</p><button class="modal-close" id="modal-close" type="button">বন্ধ করুন</button></div>
   </div>
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
     const inTelegram = Boolean(tg && typeof tg.initData === 'string' && tg.initData.length > 0);
+    const sendToTelegram = !inTelegram && Boolean(tg && (
+      new URLSearchParams(location.search).get('epremium_mode') === 'telegram'
+      || (tg.platform && tg.platform !== 'unknown')
+    ));
     const input = document.getElementById('message-input');
     const form = document.getElementById('message-form');
     const toast = document.getElementById('toast');
@@ -169,21 +167,24 @@
     const localChat = document.getElementById('local-chat');
     const modeHint = document.getElementById('mode-hint');
     const sendButton = form.querySelector('.send');
+    const resetButton = document.getElementById('reset-chat');
+    const chatUrl = './chat';
     let toastTimer;
 
-    if (inTelegram) {
+    if (inTelegram || sendToTelegram) {
       tg.ready();
       tg.expand();
       if (tg.setHeaderColor) tg.setHeaderColor('#100b1c');
       if (tg.setBackgroundColor) tg.setBackgroundColor('#100b1c');
       const firstName = tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name;
-      if (firstName) document.getElementById('greeting').innerHTML = 'Welcome back,<br><span>' + escapeHtml(firstName) + '.</span>';
-    } else {
-      modeHint.textContent = 'LOCAL PREVIEW - REPLIES USE THE DEMO ENDPOINT';
+      if (firstName) {
+        document.getElementById('greeting').textContent = 'স্বাগতম, ' + firstName + '!';
+      }
     }
-
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    if (sendToTelegram) {
+      modeHint.textContent = 'উত্তর Telegram চ্যাটে আসবে।';
+    } else if (!inTelegram) {
+      modeHint.textContent = 'ডেমো প্রিভিউ · এখানে আপনার মেসেজই ফেরত আসবে।';
     }
     function showToast(text) {
       toast.textContent = text;
@@ -191,7 +192,7 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('show'), 2300);
     }
-    function addLocalMessage(text, kind) {
+    function addChatMessage(text, kind, scroll = true) {
       localChat.hidden = false;
       const row = document.createElement('div');
       row.className = 'local-row ' + kind;
@@ -199,35 +200,130 @@
       bubble.className = 'local-bubble';
       bubble.textContent = text;
       row.appendChild(bubble);
+      if (kind === 'bot') {
+        const copy = document.createElement('button');
+        copy.className = 'chat-action copy';
+        copy.type = 'button';
+        copy.textContent = 'কপি করুন';
+        copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(text);
+            showToast('উত্তর কপি হয়েছে।');
+          } catch {
+            showToast('লেখাটি সিলেক্ট করে কপি করুন।');
+          }
+        });
+        bubble.appendChild(copy);
+      }
       localChat.appendChild(row);
-      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (scroll) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return row;
     }
+
+    async function telegramChat(method, text) {
+      const headers = { Authorization: 'tma ' + tg.initData };
+      const options = { method, headers, cache: 'no-store' };
+      if (method === 'POST') {
+        headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify({ text });
+      }
+      const response = await fetch(chatUrl, options);
+      if (response.status === 204) return;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Mini App-এ উত্তর পাওয়া যাচ্ছে না।');
+      return data;
+    }
+
+    function setBusy(busy) {
+      sendButton.disabled = busy;
+      resetButton.disabled = busy;
+      sendButton.textContent = busy ? '…' : '↑';
+    }
+
+    async function loadChat() {
+      setBusy(true);
+      try {
+        const { messages } = await telegramChat('GET');
+        messages.forEach(message => {
+          addChatMessage(message.content, message.role === 'user' ? 'user' : 'bot', false);
+        });
+      } catch {
+        showToast('আগের মেসেজ লোড করা যায়নি।');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function resetChat() {
+      if (resetButton.disabled) return;
+      setBusy(true);
+      try {
+        await telegramChat('DELETE');
+        localChat.replaceChildren();
+        localChat.hidden = true;
+        showToast('নতুন চ্যাট শুরু হয়েছে।');
+      } catch {
+        showToast('চ্যাটের প্রসঙ্গ মুছতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    if (inTelegram) {
+      resetButton.hidden = false;
+      resetButton.addEventListener('click', () => {
+        const question = 'আগের চ্যাটের প্রসঙ্গ মুছে নতুন চ্যাট শুরু করবেন?';
+        if (tg.isVersionAtLeast && tg.isVersionAtLeast('6.2') && tg.showConfirm) {
+          tg.showConfirm(question, confirmed => { if (confirmed) resetChat(); });
+        } else if (window.confirm(question)) {
+          resetChat();
+        }
+      });
+      loadChat();
+    }
+
     async function sendMessage(text) {
       const value = (text || '').trim();
+      if (sendButton.disabled) return;
       if (!value) { input.focus(); return; }
-      if (inTelegram && typeof tg.sendData === 'function') {
-        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-        tg.sendData(JSON.stringify({ type: 'message', text: value }));
+      if (sendToTelegram) {
+        const message = JSON.stringify({ type: 'message', text: value });
+        if (new TextEncoder().encode(message).length > 4096) {
+          showToast('মেসেজটি ছোট করে আবার পাঠান।');
+          return;
+        }
+        try {
+          tg.sendData(message);
+        } catch {
+          showToast('Telegram বটের বাটন থেকে Mini App আবার খুলুন।');
+        }
         return;
       }
-      addLocalMessage(value, 'user');
+      const row = addChatMessage(value, 'user');
       input.value = '';
-      sendButton.disabled = true;
-      sendButton.textContent = '...';
+      input.style.height = 'auto';
+      setBusy(true);
       try {
-        const response = await fetch('/message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: value }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.reply || 'The demo endpoint did not accept the message.');
-        addLocalMessage(data.reply || 'No response received.', 'bot');
+        let data;
+        if (inTelegram) {
+          data = await telegramChat('POST', value);
+        } else {
+          const response = await fetch('/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: value }),
+          });
+          if (!response.ok) throw new Error('ডেমো থেকে উত্তর পাওয়া যায়নি।');
+          data = await response.json();
+        }
+        addChatMessage(data.reply, 'bot');
       } catch (error) {
-        addLocalMessage('Could not reach the local preview server. Please try again.', 'bot');
+        row.remove();
+        localChat.hidden = !localChat.childElementCount;
+        if (!input.value) input.value = value;
+        showToast(error instanceof SyntaxError ? 'এখন উত্তর পাওয়া যাচ্ছে না।' : error.message);
       } finally {
-        sendButton.disabled = false;
-        sendButton.innerHTML = '&#8593;';
+        setBusy(false);
         input.focus();
       }
     }
@@ -243,7 +339,7 @@
       sendMessage(input.value);
     });
     input.addEventListener('keydown', event => {
-      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); form.requestSubmit(); }
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); form.requestSubmit(); }
     });
     input.addEventListener('input', () => {
       input.style.height = 'auto';

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from app import app
 
@@ -19,7 +20,8 @@ class MessengerBotTests(unittest.TestCase):
         self.assertIn('ok', response.get_json()['status'])
 
     def test_webhook_verification(self):
-        response = self.client.get('/webhook?hub.mode=subscribe&hub.verify_token=demo_verify_token&hub.challenge=challenge123')
+        with patch('app.VERIFY_TOKEN', 'test_verify_token'):
+            response = self.client.get('/webhook?hub.mode=subscribe&hub.verify_token=test_verify_token&hub.challenge=challenge123')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_data(as_text=True), 'challenge123')
 

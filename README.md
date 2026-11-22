@@ -4,23 +4,26 @@ This repository contains a Telegram AI bot (`bot.py`) and a separate Flask demo/
 
 ## Telegram AI bot
 
-Requires Python 3.10 or newer, a Telegram bot token, and an OpenAI API key. The bot answers Telegram messages using the OpenAI Responses API and keeps a short in-memory conversation history per chat.
+Requires Python 3.10 or newer, a Telegram bot token, and an OpenAI API key. The bot accepts text and voice messages and supports Bengali shortcuts for writing posts, translating, and explaining topics. It stores the latest 12 messages per conversation in a local SQLite database.
 
 1. Copy `.env.example` to `.env`.
 2. Set `TELEGRAM_BOT_TOKEN` and `OPENAI_API_KEY` in `.env`. Get a Telegram token from [@BotFather](https://t.me/BotFather). If a token was shared, revoke it and use a replacement. Create an OpenAI API key in the [API Platform](https://platform.openai.com/api-keys).
-3. Start the bot:
+3. Install the dependencies and start the bot.
 
 ```powershell
+python -m pip install -r requirements.txt
 python bot.py
 ```
 
-The bot supports `/start`, `/help`, `/menu`, and `/new`. OpenAI API usage may incur charges.
+The bot supports `/start`, `/help`, `/menu`, and `/new`. Reply to a shortcut’s prompt with text or a voice message. Voice messages are transcribed with the model in `OPENAI_TRANSCRIPTION_MODEL` and answered in text. `/new` clears the saved conversation context. The database defaults to `chats.sqlite3` beside `bot.py`. Use `CHAT_DB_PATH` to point to a persistent disk when deploying. OpenAI API usage may incur charges.
 
 ### Telegram Mini App
 
-`webapp/index.html` is the dark-purple Mini App and `webapp/logo.svg` is its matching vector mark. Host the `webapp` folder on a public HTTPS site, then set `WEBAPP_URL` in `.env` to the hosted page URL. After that, `/start` shows an **Open E Premium** keyboard button. Messages sent from the Mini App are answered in the Telegram chat. Telegram requires a Mini App URL to use HTTPS, and keyboard-launched Mini Apps can send data back to the bot with `sendData`.
+For replies inside the Mini App, serve Flask's `app:app` through a production WSGI server on a public HTTPS domain. In `.env`, set `WEBAPP_URL=https://your-domain.example/miniapp/` and `MINIAPP_INLINE_CHAT=1`. The Flask server and Telegram bot need the same bot token and access to the same SQLite database file on a persistent local disk. Restart both processes and open **Open E Premium** from the bot’s new `/menu` message in a private chat. The Mini App shows the recent saved messages and provides controls to copy replies and reset the conversation.
 
-For a local preview, run `python app.py` and open `http://127.0.0.1:5000/miniapp`. The preview posts to the local `/message` demo endpoint, which echoes the text. Inside Telegram, the Mini App sends the text to `bot.py`, which generates the AI reply. A local HTTP URL is only for preview; Telegram needs the hosted HTTPS URL in `WEBAPP_URL`.
+For static hosting, publish the `webapp` folder over HTTPS, point `WEBAPP_URL` at it, and leave `MINIAPP_INLINE_CHAT=0`. Messages sent with the keyboard button are answered in Telegram chat.
+
+For a local browser preview, run `python app.py` and open `http://127.0.0.1:5000/miniapp/`. The preview uses the local `/message` echo endpoint.
 
 ## Local dashboard and Messenger webhook
 
