@@ -29,7 +29,8 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 MINIAPP_INLINE_CHAT = os.getenv("MINIAPP_INLINE_CHAT", "").strip() == "1"
 TRANSCRIPTION_MODEL = os.getenv("OPENAI_TRANSCRIPTION_MODEL", "gpt-transcribe").strip()
-MAX_VOICE_BYTES = 20_000_000
+MAX_FILE_BYTES = 20_000_000
+PDF_SUMMARY = "এই PDF-এর সংক্ষিপ্ত সারাংশ ও মূল বিষয়গুলো বাংলায় লিখুন।"
 MAX_MESSAGE = 3900
 SHORTCUTS = {
     "write": (
@@ -119,15 +120,23 @@ def welcome(chat_id: int, first_name: str, *, private: bool) -> None:
     )
 
 
-def transcribe_voice(file_id: str) -> str:
+class InvalidPDF(ValueError):
+    """A PDF cannot be processed at its current size or format."""
+
+
+def download_telegram_file(file_id: str) -> tuple[str, bytes]:
     file_path = telegram("getFile", {"file_id": file_id}).get("result", {}).get("file_path")
     if not file_path:
         raise RuntimeError("Telegram did not provide a file path")
 
     url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{quote(file_path, safe='/')}"
     with urllib.request.urlopen(url, timeout=30) as response:
-        audio = response.read(MAX_VOICE_BYTES + 1)
-    if len(audio) > MAX_VOICE_BYTES:
+        return file_path, response.read(MAX_FILE_BYTES + 1)
+
+
+def transcribe_voice(file_id: str) -> str:
+    file_path, audio = download_telegram_file(file_id)
+    if len(audio) > MAX_FILE_BYTES:
         raise ValueError("Voice message exceeds the download limit")
 
     suffix = PurePosixPath(file_path).suffix.lower()
@@ -146,6 +155,26 @@ def transcribe_voice(file_id: str) -> str:
     return response.json().get("text", "").strip()
 
 
+def is_pdf(document: dict) -> bool:
+    return isinstance(document.get("file_id"), str) and (
+        (document.get("mime_type") or "").lower() == "application/pdf"
+        or (document.get("file_name") or "").lower().endswith(".pdf")
+    )
+
+
+def download_pdf(document: dict) -> bytes:
+    size_error = "PDF-এর সাইজ ২০ MB-এর মধ্যে রেখে আবার পাঠান।"
+    if (document.get("file_size") or 0) > MAX_FILE_BYTES:
+        raise InvalidPDF(size_error)
+
+    _, contents = download_telegram_file(document["file_id"])
+    if len(contents) > MAX_FILE_BYTES:
+        raise InvalidPDF(size_error)
+    if b"%PDF-" not in contents[:1024]:
+        raise InvalidPDF("ফাইলটি বৈধ PDF হিসেবে পড়া যায়নি। আবার PDF হিসেবে পাঠান।")
+    return contents
+
+
 def shortcut_task(message: dict) -> str:
     replied_to = message.get("reply_to_message", {})
     bot_id = TELEGRAM_TOKEN.partition(":")[0]
@@ -157,12 +186,13 @@ def shortcut_task(message: dict) -> str:
 
 
 def answer_user(
-    chat_id: int, text: str, *, task: str = "", voice: dict | None = None
+    chat_id: int, text: str, *,
+    task: str = "", voice: dict | None = None, document: dict | None = None,
 ) -> None:
     try:
         telegram("sendChatAction", {"chat_id": chat_id, "action": "typing"})
         if voice is not None:
-            if (voice.get("file_size") or 0) > MAX_VOICE_BYTES:
+            if (voice.get("file_size") or 0) > MAX_FILE_BYTES:
                 send(chat_id, "ভয়েস মেসেজটি বড় হয়ে গেছে। ছোট করে আবার পাঠান।")
                 return
             text = transcribe_voice(voice["file_id"])
@@ -172,8 +202,13 @@ def answer_user(
         if len(text) > MAX_INPUT:
             send(chat_id, f"মেসেজটি {MAX_INPUT} অক্ষরের মধ্যে রেখে আবার পাঠান।")
             return
-        answer = ai_reply(chat_id, text, task=task)
+        if document is not None:
+            answer = ai_reply(chat_id, text, task=task, pdf=download_pdf(document))
+        else:
+            answer = ai_reply(chat_id, text, task=task)
         send(chat_id, answer, markup=keyboard(), plain=True)
+    except InvalidPDF as exc:
+        send(chat_id, str(exc), plain=True)
     except ConversationChanged:
         send(chat_id, "চ্যাটে আরেকটি পরিবর্তন হয়েছে। আবার পাঠান।")
     except (
@@ -203,6 +238,15 @@ def handle_message(message: dict) -> None:
         return
 
     task = shortcut_task(message)
+    document = message.get("document")
+    if isinstance(document, dict):
+        if is_pdf(document):
+            question = (message.get("caption") or "").strip()
+            answer_user(chat_id, question or PDF_SUMMARY, task=task, document=document)
+        else:
+            send(chat_id, "ডকুমেন্টটি PDF ফাইল হিসেবে পাঠান।")
+        return
+
     voice = message.get("voice")
     if isinstance(voice, dict) and isinstance(voice.get("file_id"), str):
         answer_user(chat_id, "", task=task, voice=voice)
@@ -219,7 +263,9 @@ def handle_message(message: dict) -> None:
         send_menu(
             chat_id,
             "<b>কীভাবে সাহায্য করতে পারি?</b>\n\n"
-            "লিখে বা ভয়েসে প্রশ্ন করুন। আগের কথার প্রসঙ্গ মুছে নতুন করে শুরু করতে /new দিন।",
+            "লিখে বা ভয়েসে প্রশ্ন করুন। সারাংশের জন্য PDF পাঠান। "
+            "PDF নিয়ে প্রশ্ন ক্যাপশনে লিখুন অথবা ফাইলটিতে রিপ্লাই করুন। "
+            "আগের কথার প্রসঙ্গ মুছে নতুন করে শুরু করতে /new দিন।",
             private=private,
         )
     elif command == "/new":
@@ -233,7 +279,11 @@ def handle_message(message: dict) -> None:
     elif text.startswith("/"):
         send(chat_id, "কমান্ডটি চেনা যায়নি। /help দিন অথবা প্রশ্ন লিখুন।")
     else:
-        answer_user(chat_id, text, task=task)
+        replied_document = message.get("reply_to_message", {}).get("document")
+        if isinstance(replied_document, dict) and is_pdf(replied_document):
+            answer_user(chat_id, text, task=task, document=replied_document)
+        else:
+            answer_user(chat_id, text, task=task)
 
 
 def handle_callback(callback: dict) -> None:

@@ -17,6 +17,12 @@ python bot.py
 
 The bot supports `/start`, `/help`, `/menu`, and `/new`. Reply to a shortcut’s prompt with text or a voice message. Voice messages are transcribed with the model in `OPENAI_TRANSCRIPTION_MODEL` and answered in text. `/new` clears the saved conversation context. The database defaults to `chats.sqlite3` beside `bot.py`. Use `CHAT_DB_PATH` to point to a persistent disk when deploying. OpenAI API usage may incur charges.
 
+### Ask questions about a PDF
+
+Send a PDF file of up to 20 MB in Telegram. Leave the caption blank for a Bengali summary, or add a question such as “এই নোট থেকে পাঁচটি কুইজ প্রশ্ন বানাও” in the caption. Reply directly to the original PDF message with a new question to consult the file again.
+
+The bot sends the PDF to OpenAI for analysis. SQLite keeps the questions and answers as text. If you override `OPENAI_MODEL`, use a model that supports PDF inputs.
+
 ### Telegram Mini App
 
 For replies inside the Mini App, serve Flask's `app:app` through a production WSGI server on a public HTTPS domain. In `.env`, set `WEBAPP_URL=https://your-domain.example/miniapp/` and `MINIAPP_INLINE_CHAT=1`. The Flask server and Telegram bot need the same bot token and access to the same SQLite database file on a persistent local disk. Restart both processes and open **Open E Premium** from the bot’s new `/menu` message in a private chat. The Mini App shows the recent saved messages and provides controls to copy replies and reset the conversation.

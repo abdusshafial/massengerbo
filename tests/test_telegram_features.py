@@ -1,3 +1,4 @@
+import base64
 import hmac
 import io
 import json
@@ -86,6 +87,53 @@ class MiniAppChatTests(unittest.TestCase):
             response = self.client.post(self.path, headers=self.headers, json={"text": "first"})
         self.assertEqual(response.status_code, 409)
         self.assertEqual(assistant.read_conversation(42)[1], [])
+
+
+    def test_pdf_captions_and_replies_send_the_document_to_openai(self):
+        document = {"file_id": "file-id", "file_name": "notes.PDF"}
+        pdf = b"%PDF-1.7 test data"
+        chat = {"id": 42, "type": "private"}
+        file_info = {"result": {"file_path": "documents/file.pdf"}}
+        updates = [
+            ({"document": document}, bot.PDF_SUMMARY),
+            ({"document": document, "caption": "  Explain page one  "}, "Explain page one"),
+            ({"text": "Make a quiz", "reply_to_message": {"document": document}}, "Make a quiz"),
+        ]
+        with (
+            patch.object(bot, "telegram", return_value=file_info) as telegram,
+            patch.object(bot.urllib.request, "urlopen", side_effect=lambda *a, **kw: io.BytesIO(pdf)),
+            patch.object(assistant, "api_request", return_value=ai_response("answer")) as api,
+        ):
+            for update, question in updates:
+                with self.subTest(question=question):
+                    bot.handle_message({"chat": chat, **update})
+                    latest = api.call_args.args[1]["input"][-1]["content"]
+                    self.assertEqual(latest[0]["type"], "input_file")
+                    encoded = latest[0]["file_data"].removeprefix("data:application/pdf;base64,")
+                    self.assertEqual(base64.b64decode(encoded), pdf)
+                    self.assertEqual(latest[1], {"type": "input_text", "text": question})
+                    telegram.assert_any_call("getFile", {"file_id": "file-id"})
+
+        _, history = assistant.read_conversation(42)
+        self.assertEqual([message["content"] for message in history[::2]], [q for _, q in updates])
+
+    def test_invalid_pdf_is_rejected_before_calling_openai(self):
+        document = {"file_id": "file-id", "mime_type": "application/pdf"}
+        with (
+            patch.object(bot, "telegram"),
+            patch.object(bot, "download_telegram_file", return_value=("file.pdf", b"not a PDF")) as download,
+            patch.object(assistant, "api_request") as api,
+            patch.object(bot, "send") as send,
+        ):
+            bot.handle_message({"chat": {"id": 42}, "document": document})
+            self.assertIn("বৈধ PDF", send.call_args.args[1])
+            bot.handle_message({
+                "chat": {"id": 42},
+                "document": {**document, "file_size": bot.MAX_FILE_BYTES + 1},
+            })
+            self.assertIn("২০ MB", send.call_args.args[1])
+            download.assert_called_once()
+            api.assert_not_called()
 
 
 class TelegramFeatureTests(unittest.TestCase):
