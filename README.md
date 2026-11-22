@@ -23,6 +23,12 @@ Send a PDF file of up to 20 MB in Telegram. Leave the caption blank for a Bengal
 
 The bot sends the PDF to OpenAI for analysis. SQLite keeps the questions and answers as text. If you override `OPENAI_MODEL`, use a model that supports PDF inputs.
 
+### Ask questions about a photo
+
+Send a photo in Telegram from the attachment menu. Leave the caption blank for a Bengali description and readable text, or ask a question in the caption. For example, “এই অঙ্কটা ধাপে ধাপে বুঝিয়ে দাও।” Reply directly to the original photo to ask another question.
+
+For small print or handwriting, send the original JPG, PNG, or WebP as a file to avoid Telegram's photo compression. The image limit is 15 MB. The bot sends the image to OpenAI for analysis and keeps the questions and answers as text in SQLite.
+
 ### Telegram Mini App
 
 For replies inside the Mini App, serve Flask's `app:app` through a production WSGI server on a public HTTPS domain. In `.env`, set `WEBAPP_URL=https://your-domain.example/miniapp/` and `MINIAPP_INLINE_CHAT=1`. The Flask server and Telegram bot need the same bot token and access to the same SQLite database file on a persistent local disk. Restart both processes and open **Open E Premium** from the bot’s new `/menu` message in a private chat. The Mini App shows the recent saved messages and provides controls to copy replies and reset the conversation.

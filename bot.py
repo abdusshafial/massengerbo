@@ -30,6 +30,10 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "").strip()
 MINIAPP_INLINE_CHAT = os.getenv("MINIAPP_INLINE_CHAT", "").strip() == "1"
 TRANSCRIPTION_MODEL = os.getenv("OPENAI_TRANSCRIPTION_MODEL", "gpt-transcribe").strip()
 MAX_FILE_BYTES = 20_000_000
+MAX_IMAGE_BYTES = 15_000_000
+IMAGE_SUMMARY = "ছবিতে কী দেখা যাচ্ছে বাংলায় সংক্ষেপে বলুন। কোনো লেখা থাকলে যা স্পষ্ট দেখা যায় তা তুলে ধরুন।"
+IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 PDF_SUMMARY = "এই PDF-এর সংক্ষিপ্ত সারাংশ ও মূল বিষয়গুলো বাংলায় লিখুন।"
 MAX_MESSAGE = 3900
 SHORTCUTS = {
@@ -120,18 +124,18 @@ def welcome(chat_id: int, first_name: str, *, private: bool) -> None:
     )
 
 
-class InvalidPDF(ValueError):
-    """A PDF cannot be processed at its current size or format."""
+class InvalidAttachment(ValueError):
+    """An attachment cannot be processed at its current size or format."""
 
 
-def download_telegram_file(file_id: str) -> tuple[str, bytes]:
+def download_telegram_file(file_id: str, *, max_bytes: int = MAX_FILE_BYTES) -> tuple[str, bytes]:
     file_path = telegram("getFile", {"file_id": file_id}).get("result", {}).get("file_path")
     if not file_path:
         raise RuntimeError("Telegram did not provide a file path")
 
     url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{quote(file_path, safe='/')}"
     with urllib.request.urlopen(url, timeout=30) as response:
-        return file_path, response.read(MAX_FILE_BYTES + 1)
+        return file_path, response.read(max_bytes + 1)
 
 
 def transcribe_voice(file_id: str) -> str:
@@ -165,14 +169,45 @@ def is_pdf(document: dict) -> bool:
 def download_pdf(document: dict) -> bytes:
     size_error = "PDF-এর সাইজ ২০ MB-এর মধ্যে রেখে আবার পাঠান।"
     if (document.get("file_size") or 0) > MAX_FILE_BYTES:
-        raise InvalidPDF(size_error)
+        raise InvalidAttachment(size_error)
 
     _, contents = download_telegram_file(document["file_id"])
     if len(contents) > MAX_FILE_BYTES:
-        raise InvalidPDF(size_error)
+        raise InvalidAttachment(size_error)
     if b"%PDF-" not in contents[:1024]:
-        raise InvalidPDF("ফাইলটি বৈধ PDF হিসেবে পড়া যায়নি। আবার PDF হিসেবে পাঠান।")
+        raise InvalidAttachment("ফাইলটি বৈধ PDF হিসেবে পড়া যায়নি। আবার PDF হিসেবে পাঠান।")
     return contents
+
+
+def image_attachment(message: dict) -> dict | None:
+    photos = message.get("photo") or []
+    if photos:
+        return max(photos, key=lambda photo: photo["width"] * photo["height"])
+
+    document = message.get("document")
+    if isinstance(document, dict) and isinstance(document.get("file_id"), str):
+        suffix = PurePosixPath(document.get("file_name") or "").suffix.lower()
+        mime_type = (document.get("mime_type") or "").lower()
+        if suffix in IMAGE_EXTENSIONS or mime_type in IMAGE_MIME_TYPES:
+            return document
+    return None
+
+
+def download_image(photo: dict) -> tuple[bytes, str]:
+    size_error = "ছবির সাইজ ১৫ MB-এর মধ্যে রেখে আবার পাঠান।"
+    if (photo.get("file_size") or 0) > MAX_IMAGE_BYTES:
+        raise InvalidAttachment(size_error)
+
+    _, contents = download_telegram_file(photo["file_id"], max_bytes=MAX_IMAGE_BYTES)
+    if len(contents) > MAX_IMAGE_BYTES:
+        raise InvalidAttachment(size_error)
+    if contents.startswith(b"\xff\xd8\xff"):
+        return contents, "image/jpeg"
+    if contents.startswith(b"\x89PNG\r\n\x1a\n"):
+        return contents, "image/png"
+    if contents.startswith(b"RIFF") and contents[8:12] == b"WEBP":
+        return contents, "image/webp"
+    raise InvalidAttachment("ছবিটি পড়া যায়নি। JPG, PNG বা WebP ফরম্যাটে পাঠান।")
 
 
 def shortcut_task(message: dict) -> str:
@@ -187,7 +222,10 @@ def shortcut_task(message: dict) -> str:
 
 def answer_user(
     chat_id: int, text: str, *,
-    task: str = "", voice: dict | None = None, document: dict | None = None,
+    task: str = "",
+    voice: dict | None = None,
+    document: dict | None = None,
+    image: dict | None = None,
 ) -> None:
     try:
         telegram("sendChatAction", {"chat_id": chat_id, "action": "typing"})
@@ -204,10 +242,12 @@ def answer_user(
             return
         if document is not None:
             answer = ai_reply(chat_id, text, task=task, pdf=download_pdf(document))
+        elif image is not None:
+            answer = ai_reply(chat_id, text, task=task, image=download_image(image))
         else:
             answer = ai_reply(chat_id, text, task=task)
         send(chat_id, answer, markup=keyboard(), plain=True)
-    except InvalidPDF as exc:
+    except InvalidAttachment as exc:
         send(chat_id, str(exc), plain=True)
     except ConversationChanged:
         send(chat_id, "চ্যাটে আরেকটি পরিবর্তন হয়েছে। আবার পাঠান।")
@@ -238,13 +278,19 @@ def handle_message(message: dict) -> None:
         return
 
     task = shortcut_task(message)
+    photo = image_attachment(message)
+    if photo is not None:
+        question = (message.get("caption") or "").strip()
+        answer_user(chat_id, question or IMAGE_SUMMARY, task=task, image=photo)
+        return
+
     document = message.get("document")
     if isinstance(document, dict):
         if is_pdf(document):
             question = (message.get("caption") or "").strip()
             answer_user(chat_id, question or PDF_SUMMARY, task=task, document=document)
         else:
-            send(chat_id, "ডকুমেন্টটি PDF ফাইল হিসেবে পাঠান।")
+            send(chat_id, "PDF ফাইল বা JPG, PNG, WebP ছবি পাঠান।")
         return
 
     voice = message.get("voice")
@@ -263,8 +309,8 @@ def handle_message(message: dict) -> None:
         send_menu(
             chat_id,
             "<b>কীভাবে সাহায্য করতে পারি?</b>\n\n"
-            "লিখে বা ভয়েসে প্রশ্ন করুন। সারাংশের জন্য PDF পাঠান। "
-            "PDF নিয়ে প্রশ্ন ক্যাপশনে লিখুন অথবা ফাইলটিতে রিপ্লাই করুন। "
+            "লিখে বা ভয়েসে প্রশ্ন করুন। ছবি বুঝতে একটি ছবি পাঠান, অথবা সারাংশের জন্য PDF পাঠান। "
+            "ছবি বা PDF নিয়ে প্রশ্ন ক্যাপশনে লিখুন অথবা সেটিতে রিপ্লাই করুন। "
             "আগের কথার প্রসঙ্গ মুছে নতুন করে শুরু করতে /new দিন।",
             private=private,
         )
@@ -279,8 +325,12 @@ def handle_message(message: dict) -> None:
     elif text.startswith("/"):
         send(chat_id, "কমান্ডটি চেনা যায়নি। /help দিন অথবা প্রশ্ন লিখুন।")
     else:
-        replied_document = message.get("reply_to_message", {}).get("document")
-        if isinstance(replied_document, dict) and is_pdf(replied_document):
+        replied_to = message.get("reply_to_message", {})
+        photo = image_attachment(replied_to)
+        replied_document = replied_to.get("document")
+        if photo is not None:
+            answer_user(chat_id, text, task=task, image=photo)
+        elif isinstance(replied_document, dict) and is_pdf(replied_document):
             answer_user(chat_id, text, task=task, document=replied_document)
         else:
             answer_user(chat_id, text, task=task)

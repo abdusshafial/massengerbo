@@ -136,7 +136,54 @@ class MiniAppChatTests(unittest.TestCase):
             api.assert_not_called()
 
 
+    def test_photo_and_image_document_send_the_image_with_the_question(self):
+        photo = {"file_id": "large", "width": 1200, "height": 800}
+        photo_message = {"photo": [photo, {"file_id": "small", "width": 20, "height": 30}]}
+        document = {"file_id": "original", "file_name": "notes.PNG"}
+        image = b"\x89PNG\r\n\x1a\n test data"
+        messages = [
+            (photo_message, bot.IMAGE_SUMMARY, "large"),
+            ({**photo_message, "caption": " What does it say? "}, "What does it say?", "large"),
+            ({"text": "Explain the equation", "reply_to_message": photo_message}, "Explain the equation", "large"),
+            ({"document": document, "caption": "Translate the note"}, "Translate the note", "original"),
+        ]
+        with (
+            patch.object(bot, "telegram"),
+            patch.object(bot, "download_telegram_file", return_value=("image.png", image)) as download,
+            patch.object(assistant, "api_request", return_value=ai_response("reply")) as api,
+        ):
+            for update, question, file_id in messages:
+                with self.subTest(question=question):
+                    bot.handle_message({"chat": {"id": 42}, **update})
+                    download.assert_called_with(file_id, max_bytes=bot.MAX_IMAGE_BYTES)
+                    attachment, prompt = api.call_args.args[1]["input"][-1]["content"]
+                    self.assertEqual(attachment["type"], "input_image")
+                    prefix, encoded = attachment["image_url"].split(",", 1)
+                    self.assertEqual(prefix, "data:image/png;base64")
+                    self.assertEqual(base64.b64decode(encoded), image)
+                    self.assertEqual(prompt, {"type": "input_text", "text": question})
+
+        _, history = assistant.read_conversation(42)
+        self.assertEqual([message["content"] for message in history[::2]], [q for _, q, _ in messages])
+
+
 class TelegramFeatureTests(unittest.TestCase):
+    def test_rejects_oversized_and_unsupported_images_without_calling_ai(self):
+        document = {"file_id": "photo", "mime_type": "image/jpeg"}
+        with (
+            patch.object(bot, "telegram"),
+            patch.object(bot, "download_telegram_file", return_value=("file.jpg", b"not an image")) as download,
+            patch.object(bot, "ai_reply") as reply,
+            patch.object(bot, "send") as send,
+        ):
+            bot.handle_message({"chat": {"id": 42}, "document": document})
+            self.assertIn("JPG, PNG", send.call_args.args[1])
+            oversized = {**document, "file_size": bot.MAX_IMAGE_BYTES + 1}
+            bot.handle_message({"chat": {"id": 42}, "document": oversized})
+            self.assertIn("১৫ MB", send.call_args.args[1])
+            download.assert_called_once()
+            reply.assert_not_called()
+
     def test_shortcut_uses_force_reply_and_passes_the_task_to_ai(self):
         _, prompt, task = bot.SHORTCUTS["translate"]
         callback = {
