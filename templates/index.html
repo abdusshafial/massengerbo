@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#100d18">
+  <meta name="theme-color" content="#11101b">
   <title>MessengerBo | Inbox preview</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #100d18;
-      --panel: #1a1525;
-      --text: #faf7ff;
-      --muted: #b3a8c4;
-      --line: #a995c537;
-      --accent: #d7bcff;
+      --bg: #11101b;
+      --panel: #1b1929;
+      --text: #f8f5ff;
+      --muted: #b5adc9;
+      --line: #ae9bda38;
+      --accent: #d5c2ff;
       --green: #8ce5bc;
     }
     * { box-sizing: border-box; }
@@ -21,7 +21,7 @@
       margin: 0;
       min-height: 100vh;
       color: var(--text);
-      background: radial-gradient(ellipse at 16% 28%, #2c1c40, transparent 45%), var(--bg);
+      background: radial-gradient(ellipse at 12% 12%, #34264a, transparent 52%), var(--bg);
       font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     }
     button, input { font: inherit; }
@@ -43,10 +43,10 @@
       flex: none;
       place-items: center;
       color: #211331;
-      background: linear-gradient(135deg, #ead7ff, #b38ae9);
+      background: linear-gradient(145deg, #e9dcff, #bca1fa 76%);
       font-weight: 800;
     }
-    .brand-mark { width: 42px; height: 42px; border-radius: 14px; box-shadow: 0 8px 22px #a97add2d; }
+    .brand-mark { width: 42px; height: 42px; border-radius: 14px; box-shadow: inset 0 1px #fff9, 0 8px 22px #a97add2d; }
     .miniapp-link {
       display: inline-flex;
       align-items: center;
@@ -55,13 +55,14 @@
       padding: 0 14px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      color: var(--accent);
+      color: #f2d49d;
+      background: #e2b96c0b;
       font-size: 13px;
       font-weight: 650;
       text-decoration: none;
       transition: background .16s, border-color .16s;
     }
-    .miniapp-link:hover { border-color: #c1a0f17a; background: #c1a0f116; }
+    .miniapp-link:hover { border-color: #edc98e83; background: #e2b96c20; }
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
@@ -72,11 +73,23 @@
     h1 {
       margin: 0 0 22px;
       font-size: clamp(50px, 6vw, 88px);
-      font-weight: 720;
+      font-weight: 760;
       line-height: .98;
       letter-spacing: -.075em;
     }
     h1 span { display: block; color: var(--accent); }
+    .overview { position: relative; isolation: isolate; }
+    .overview::before {
+      position: absolute;
+      z-index: -1;
+      top: -28px;
+      left: -26px;
+      width: min(100%, 370px);
+      height: 280px;
+      background: radial-gradient(ellipse, #9e6de51f, transparent 72%);
+      content: "";
+      pointer-events: none;
+    }
     .intro { max-width: 310px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
     .mode {
       display: inline-flex;
@@ -96,14 +109,14 @@
       min-width: 0;
       overflow: hidden;
       border: 1px solid var(--line);
-      border-radius: 24px;
-      background: var(--panel);
-      box-shadow: 0 28px 70px #07050d80;
+      border-radius: 27px;
+      background: linear-gradient(165deg, #211b31, #171523 68%);
+      box-shadow: inset 0 1px #f1ddff16, 0 28px 70px #07050d80;
     }
     .conversation-head {
       padding: 16px 20px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(110deg, #292036, #21192c);
+      background: linear-gradient(110deg, #c0a6ff12, #c0a6ff05);
     }
     .avatar { width: 42px; height: 42px; border-radius: 14px; }
     .contact-name { margin: 0; font-size: 15px; font-weight: 730; }
@@ -112,12 +125,21 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      height: clamp(260px, 42vh, 390px);
+      height: clamp(240px, 46vh, 400px);
+      overscroll-behavior-y: contain;
       overflow-y: auto;
       padding: 22px 20px 20px;
       scrollbar-color: #625075 transparent;
     }
-    .day { align-self: center; color: var(--muted); font-size: 11px; font-weight: 650; }
+    .day {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+    .day::before, .day::after { height: 1px; flex: 1; background: var(--line); content: ""; }
     .message-row { display: flex; align-items: flex-end; gap: 9px; }
     .message-row.user { justify-content: flex-end; }
     .bubble {
@@ -126,7 +148,7 @@
       border: 1px solid var(--line);
       border-radius: 16px 16px 16px 5px;
       color: var(--text);
-      background: #282034;
+      background: #282139;
       font-size: 14px;
       overflow-wrap: anywhere;
       white-space: pre-wrap;
@@ -134,11 +156,11 @@
     .bubble.user {
       border-color: #c9a4ff4d;
       border-radius: 16px 16px 5px 16px;
-      background: #4d3569;
+      background: #4a3569;
     }
     .time { display: block; margin-top: 4px; color: #c2b5d1; text-align: right; font-size: 10px; }
     .mini-avatar { width: 27px; height: 27px; border-radius: 9px; font-size: 11px; }
-    .composer { padding: 14px; border-top: 1px solid var(--line); }
+    .composer { padding: 14px; border-top: 1px solid var(--line); background: #171422; }
     .form {
       display: flex;
       align-items: center;
@@ -146,7 +168,7 @@
       padding: 6px 6px 6px 14px;
       border: 1px solid var(--line);
       border-radius: 15px;
-      background: #120e1a;
+      background: var(--panel);
       transition: border-color .16s, box-shadow .16s;
     }
     .form:focus-within { border-color: #c6a2ff; box-shadow: 0 0 0 3px #c6a2ff24; }
@@ -170,12 +192,14 @@
       border: 0;
       border-radius: 11px;
       color: #241535;
-      background: var(--accent);
-      font-size: 22px;
+      background: linear-gradient(145deg, #e9dcff, #bca1fa 76%);
+      box-shadow: inset 0 1px #fff9, 0 4px 13px #bc9aff25;
+      font-size: 23px;
+      line-height: 1;
       cursor: pointer;
-      transition: background .16s, transform .16s;
+      transition: filter .16s, transform .16s;
     }
-    .send:hover:not(:disabled) { background: #ead9ff; }
+    .send:hover:not(:disabled) { filter: brightness(1.09); }
     .send:active:not(:disabled) { transform: scale(.95); }
     .send:disabled { opacity: .6; cursor: wait; }
     @media (max-width: 760px) {
@@ -205,7 +229,7 @@
     <a class="miniapp-link" href="{{ url_for('miniapp_index') }}">E Premium <span aria-hidden="true">&#8599;</span></a>
   </header>
   <main class="shell layout">
-    <section aria-labelledby="page-title">
+    <section class="overview" aria-labelledby="page-title">
       <h1 id="page-title">Messenger <span>preview</span></h1>
       <p class="intro">Send a message to see how replies appear in the conversation.</p>
       <p class="mode">Local demo</p>
